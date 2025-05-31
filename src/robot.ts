@@ -115,4 +115,17 @@ export interface Robot {
 	 * Get the current screen orientation.
 	 */
 	getOrientation(): Promise<Orientation>;
+
+	/**
+	 * Start screen recording and return a recording ID.
+	 * The video will be saved to a temporary location.
+	 */
+	startRecording(): Promise<string>;
+
+	/**
+	 * Stop screen recording and return the path to the video file.
+	 * @param recordingId The recording ID returned from startRecording
+	 * @returns The path to the saved video file
+	 */
+	stopRecording(recordingId: string): Promise<string>;
 }

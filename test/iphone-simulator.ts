@@ -1,4 +1,5 @@
 import assert from "assert";
+import { existsSync, statSync, readFileSync } from "fs";
 
 import { PNG } from "../src/png";
 import { Simctl, SimctlManager } from "../src/iphone-simulator";
@@ -213,5 +214,66 @@ describe("iphone-simulator", () => {
 		assert.equal(apps[0].CFBundleDisplayName, "WebDriverAgentRunner-Runner");
 		assert.equal(apps[1].CFBundleDisplayName, "Sample1");
 		assert.equal(apps[1].CFBundleName, "Sample{1}App");
+	});
+
+	it("should be able to record video", async function() {
+		hasOneSimulator || this.skip();
+
+		// Set a longer timeout for this test since recording takes time
+		this.timeout(15000);
+
+		// Navigate to home screen to have some visual activity
+		await simctl.pressButton("HOME");
+		await new Promise(resolve => setTimeout(resolve, 1000));
+
+		// Start recording (no filePath parameter needed)
+		const recordingId = await simctl.startRecording();
+		assert.ok(recordingId, "should return a recording ID");
+		assert.ok(recordingId.length > 0, "recording ID should not be empty");
+
+		// Do some interactions during recording to have content
+		await simctl.tap(100, 200); // Tap somewhere on screen
+		await new Promise(resolve => setTimeout(resolve, 1000));
+		await simctl.swipe("down");
+		await new Promise(resolve => setTimeout(resolve, 1000));
+		await simctl.swipe("up");
+
+		// Record for a minimum duration (2 seconds)
+		await new Promise(resolve => setTimeout(resolve, 2000));
+
+		// Stop recording and get the file path
+		const testVideoPath = await simctl.stopRecording(recordingId);
+		assert.ok(testVideoPath, "should return a video file path");
+
+		console.log("testVideoPath", testVideoPath);
+
+		// Verify the video file exists
+		assert.ok(existsSync(testVideoPath), "video file should exist at returned path");
+
+		// Verify the video file has reasonable size (should be at least a few KB for a 2+ second recording)
+		const stats = statSync(testVideoPath);
+		assert.ok(stats.size > 1024, "video file should be larger than 1KB");
+
+		// Verify it's a valid video file by checking file signature
+		// MOV files typically start with specific bytes
+		const buffer = readFileSync(testVideoPath);
+		assert.ok(buffer.length > 0, "video file should not be empty");
+
+		// MOV files have 'ftyp' at offset 4
+		const signature = buffer.toString("ascii", 4, 8);
+		assert.ok(signature === "ftyp", `video file should be a valid MOV file (found signature: ${signature})`);
+	});
+
+	it("should handle recording errors gracefully", async function() {
+		hasOneSimulator || this.skip();
+
+		// Test stopping a non-existent recording
+		try {
+			await simctl.stopRecording("non-existent-id");
+			assert.fail("should have thrown an error for non-existent recording");
+		} catch (error) {
+			assert.ok(error instanceof Error);
+			assert.ok(error.message.includes("No active recording found"));
+		}
 	});
 });

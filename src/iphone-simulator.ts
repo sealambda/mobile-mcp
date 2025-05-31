@@ -1,4 +1,7 @@
-import { execFileSync } from "child_process";
+import { execFileSync, spawn, ChildProcess } from "child_process";
+import { randomBytes } from "crypto";
+import path from "path";
+import { tmpdir } from "os";
 
 import { WebDriverAgent } from "./webdriver-agent";
 import { ActionableError, Button, InstalledApp, Robot, ScreenElement, ScreenSize, SwipeDirection, Orientation } from "./robot";
@@ -36,6 +39,12 @@ const TIMEOUT = 30000;
 const WDA_PORT = 8100;
 const MAX_BUFFER_SIZE = 1024 * 1024 * 4;
 
+const activeRecordings = new Map<string, {
+	process: ChildProcess,
+	simulatorUuid: string,
+	videoPath: string
+}>();
+
 export class Simctl implements Robot {
 
 	constructor(private readonly simulatorUuid: string) {}
@@ -54,6 +63,13 @@ export class Simctl implements Robot {
 		return execFileSync("xcrun", ["simctl", ...args], {
 			timeout: TIMEOUT,
 			maxBuffer: MAX_BUFFER_SIZE,
+		});
+	}
+
+	private simctlSpawn(...args: string[]): ChildProcess {
+		return spawn("xcrun", ["simctl", ...args], {
+			detached: true,
+			stdio: ["ignore", "pipe", "pipe"]
 		});
 	}
 
@@ -196,6 +212,39 @@ export class Simctl implements Robot {
 	public async getOrientation(): Promise<Orientation> {
 		const wda = await this.wda();
 		return wda.getOrientation();
+	}
+
+	public async startRecording(): Promise<string> {
+		const recordingId = randomBytes(8).toString("hex");
+		const videoPath = path.join(tmpdir(), `recording_${recordingId}.mov`);
+
+		const recordingProcess = this.simctlSpawn("io", this.simulatorUuid, "recordVideo", videoPath);
+
+		activeRecordings.set(recordingId, {
+			process: recordingProcess,
+			simulatorUuid: this.simulatorUuid,
+			videoPath: videoPath
+		});
+
+		return recordingId;
+	}
+
+	public async stopRecording(recordingId: string): Promise<string> {
+		const recording = activeRecordings.get(recordingId);
+
+		if (!recording) {
+			throw new ActionableError(`No active recording found with ID: ${recordingId}`);
+		}
+
+		if (recording.simulatorUuid !== this.simulatorUuid) {
+			throw new ActionableError(`Recording ${recordingId} is not associated with this simulator`);
+		}
+
+		recording.process.kill("SIGINT");
+		await new Promise(resolve => setTimeout(resolve, 2000));
+		activeRecordings.delete(recordingId);
+
+		return recording.videoPath;
 	}
 }
 

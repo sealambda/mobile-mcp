@@ -371,6 +371,30 @@ export const createMcpServer = (): McpServer => {
 		}
 	);
 
+	tool(
+		"mobile_start_recording",
+		"Start screen recording on the device. The video will be saved to a temporary location.",
+		{},
+		async () => {
+			requireRobot();
+			const recordingId = await robot!.startRecording();
+			return `Recording started with ID: ${recordingId}. Use mobile_stop_recording to stop and get the video file path.`;
+		}
+	);
+
+	tool(
+		"mobile_stop_recording",
+		"Stop an active screen recording and get the path to the video file.",
+		{
+			recordingId: z.string().describe("The recording ID returned from mobile_start_recording")
+		},
+		async ({ recordingId }) => {
+			requireRobot();
+			const videoPath = await robot!.stopRecording(recordingId);
+			return `Recording ${recordingId} stopped. Video saved to: ${videoPath}`;
+		}
+	);
+
 	// async check for latest agent version
 	checkForLatestAgentVersion().then();
 

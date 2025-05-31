@@ -1,5 +1,7 @@
 import path from "path";
-import { execFileSync } from "child_process";
+import { execFileSync, spawn, ChildProcess } from "child_process";
+import { randomBytes } from "crypto";
+import { tmpdir } from "os";
 
 import * as xml from "fast-xml-parser";
 
@@ -54,15 +56,29 @@ const MAX_BUFFER_SIZE = 1024 * 1024 * 4;
 
 type AndroidDeviceType = "tv" | "mobile";
 
+const activeRecordings = new Map<string, {
+	process: ChildProcess,
+	deviceId: string,
+	videoPath: string,
+	destinationPath: string
+}>();
+
 export class AndroidRobot implements Robot {
 
-	public constructor(private deviceId: string) {
+	public constructor(private readonly deviceId: string) {
 	}
 
 	public adb(...args: string[]): Buffer {
 		return execFileSync(getAdbPath(), ["-s", this.deviceId, ...args], {
 			maxBuffer: MAX_BUFFER_SIZE,
 			timeout: TIMEOUT,
+		});
+	}
+
+	public adbSpawn(...args: string[]): ChildProcess {
+		return spawn(getAdbPath(), ["-s", this.deviceId, ...args], {
+			detached: true,
+			stdio: ["ignore", "pipe", "pipe"]
 		});
 	}
 
@@ -228,6 +244,49 @@ export class AndroidRobot implements Robot {
 	public async getOrientation(): Promise<Orientation> {
 		const rotation = this.adb("shell", "settings", "get", "system", "user_rotation").toString().trim();
 		return rotation === "0" ? "portrait" : "landscape";
+	}
+
+	public async startRecording(): Promise<string> {
+		const recordingId = randomBytes(8).toString("hex");
+		const videoPath = `/sdcard/recording_${recordingId}.mp4`;
+		const destinationPath = path.join(tmpdir(), `recording_${recordingId}.mp4`);
+
+		const recordingProcess = this.adbSpawn("shell", "screenrecord", videoPath);
+
+		activeRecordings.set(recordingId, {
+			process: recordingProcess,
+			deviceId: this.deviceId,
+			videoPath: videoPath,
+			destinationPath: destinationPath
+		});
+
+		return recordingId;
+	}
+
+	public async stopRecording(recordingId: string): Promise<string> {
+		const recording = activeRecordings.get(recordingId);
+
+		if (!recording) {
+			throw new ActionableError(`No active recording found with ID: ${recordingId}`);
+		}
+
+		if (recording.deviceId !== this.deviceId) {
+			throw new ActionableError(`Recording ${recordingId} is not associated with this device`);
+		}
+
+		recording.process.kill("SIGINT");
+		await new Promise(resolve => setTimeout(resolve, 2000));
+
+		try {
+			this.adb("pull", recording.videoPath, recording.destinationPath);
+			this.adb("shell", "rm", recording.videoPath);
+		} catch (error: any) {
+			throw new ActionableError(`Failed to download recording: ${error.message}`);
+		} finally {
+			activeRecordings.delete(recordingId);
+		}
+
+		return recording.destinationPath;
 	}
 
 	private async getUiAutomatorDump(): Promise<string> {

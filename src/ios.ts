@@ -189,6 +189,14 @@ export class IosRobot implements Robot {
 		const wda = await this.wda();
 		return await wda.getOrientation();
 	}
+
+	public async startRecording(): Promise<string> {
+		throw new ActionableError("Screen recording is not yet supported on iOS devices. Only Android devices are currently supported.");
+	}
+
+	public async stopRecording(recordingId: string): Promise<string> {
+		throw new ActionableError("Screen recording is not yet supported on iOS devices. Only Android devices are currently supported.");
+	}
 }
 
 export class IosManager {
