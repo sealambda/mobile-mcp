@@ -164,6 +164,12 @@ export class WebDriverAgent {
 		if (acceptedTypes.includes(source.type)) {
 			if (source.isVisible === "1" && this.isVisible(source.rect)) {
 				if (source.label !== null || source.name !== null || source.rawIdentifier !== null) {
+					/**
+					 * Use the center of the element as the tap point
+					 */
+					const tapX = source.rect.x + source.rect.width / 2;
+					const tapY = source.rect.y + source.rect.height / 2;
+
 					output.push({
 						type: source.type,
 						label: source.label,
@@ -171,8 +177,8 @@ export class WebDriverAgent {
 						value: source.value,
 						identifier: source.rawIdentifier,
 						rect: {
-							x: source.rect.x,
-							y: source.rect.y,
+							x: tapX,
+							y: tapY,
 							width: source.rect.width,
 							height: source.rect.height,
 						},
