@@ -154,14 +154,17 @@ export const createMcpServer = (): McpServer => {
 
 	tool(
 		"mobile_launch_app",
-		"Launch an app on mobile device. Use this to open a specific app. You can find the package name of the app by calling list_apps_on_device.",
+		"Launch an app on mobile device in a specific language/locale. Use this to open a specific app. You can find the package name of the app by calling list_apps_on_device.",
 		{
 			packageName: z.string().describe("The package name of the app to launch"),
+			locale: z.string().optional().describe("Optional locale/language code (e.g., 'en_US', 'es_ES', 'fr_FR') or just language (e.g., 'es', 'fr')"),
 		},
-		async ({ packageName }) => {
+		async ({ packageName, locale }) => {
 			requireRobot();
-			await robot!.launchApp(packageName);
-			return `Launched app ${packageName}`;
+			await robot!.launchApp(packageName, locale);
+			return locale
+				? `Launched app ${packageName} with locale ${locale}`
+				: `Launched app ${packageName}`;
 		}
 	);
 

@@ -83,8 +83,31 @@ export class Simctl implements Robot {
 		// alternative: this.simctl("openurl", this.simulatorUuid, url);
 	}
 
-	public async launchApp(packageName: string) {
-		this.simctl("launch", this.simulatorUuid, packageName);
+	public async launchApp(packageName: string, locale?: string) {
+		if (locale) {
+			const language = locale.split("_")[0];
+
+			if (locale.includes("_")) {
+				this.simctl(
+					"launch",
+					this.simulatorUuid,
+					packageName,
+					"--args",
+					"-AppleLanguages", `(${language})`,
+					"-AppleLocale", locale
+				);
+			} else {
+				this.simctl(
+					"launch",
+					this.simulatorUuid,
+					packageName,
+					"--args",
+					"-AppleLanguages", `(${language})`
+				);
+			}
+		} else {
+			this.simctl("launch", this.simulatorUuid, packageName);
+		}
 	}
 
 	public async terminateApp(packageName: string) {
