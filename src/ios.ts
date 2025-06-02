@@ -136,7 +136,7 @@ export class IosRobot implements Robot {
 			});
 	}
 
-	public async launchApp(packageName: string): Promise<void> {
+	public async launchApp(packageName: string, locale?: string): Promise<void> {
 		await this.assertTunnelRunning();
 		await this.ios("launch", packageName);
 	}

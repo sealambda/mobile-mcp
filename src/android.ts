@@ -120,7 +120,7 @@ export class AndroidRobot implements Robot {
 			}));
 	}
 
-	public async launchApp(packageName: string): Promise<void> {
+	public async launchApp(packageName: string, locale?: string): Promise<void> {
 		this.adb("shell", "monkey", "-p", packageName, "-c", "android.intent.category.LAUNCHER", "1");
 	}
 
