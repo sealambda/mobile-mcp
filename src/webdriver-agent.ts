@@ -257,6 +257,51 @@ export class WebDriverAgent {
 		});
 	}
 
+	public async swipeFromCoordinates(fromX: number, fromY: number, direction: SwipeDirection, distance: number = 300) {
+		await this.withinSession(async sessionUrl => {
+			let toX = fromX;
+			let toY = fromY;
+
+			switch (direction) {
+				case "up":
+					toY = fromY - distance;
+					break;
+				case "down":
+					toY = fromY + distance;
+					break;
+				case "left":
+					toX = fromX - distance;
+					break;
+				case "right":
+					toX = fromX + distance;
+					break;
+			}
+
+			const url = `${sessionUrl}/actions`;
+			await fetch(url, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					actions: [
+						{
+							type: "pointer",
+							id: "finger1",
+							parameters: { pointerType: "touch" },
+							actions: [
+								{ type: "pointerMove", duration: 0, x: fromX, y: fromY },
+								{ type: "pointerDown", button: 0 },
+								{ type: "pointerMove", duration: 500, x: toX, y: toY },
+								{ type: "pointerUp", button: 0 }
+							]
+						}
+					]
+				}),
+			});
+		});
+	}
+
 	public async setOrientation(orientation: Orientation): Promise<void> {
 		await this.withinSession(async sessionUrl => {
 			const url = `${sessionUrl}/orientation`;

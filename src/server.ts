@@ -282,6 +282,22 @@ export const createMcpServer = (): McpServer => {
 	);
 
 	tool(
+		"mobile_swipe_from_coordinates",
+		"Swipe from specific coordinates on the screen in any direction (up, down, left, right)",
+		{
+			fromX: z.number().describe("Starting X coordinate for the swipe"),
+			fromY: z.number().describe("Starting Y coordinate for the swipe"),
+			direction: z.enum(["up", "down", "left", "right"]).describe("Direction to swipe in"),
+			distance: z.number().optional().describe("Distance to swipe in pixels (default: 300)"),
+		},
+		async ({ fromX, fromY, direction, distance }) => {
+			requireRobot();
+			await robot!.swipeFromCoordinates(fromX, fromY, direction, distance);
+			return `Swiped ${direction} from coordinates (${fromX}, ${fromY})${distance ? ` for ${distance} pixels` : ""}`;
+		}
+	);
+
+	tool(
 		"mobile_type_keys",
 		"Type text into the focused element",
 		{
