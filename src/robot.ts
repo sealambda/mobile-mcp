@@ -56,6 +56,15 @@ export interface Robot {
 	swipe(direction: SwipeDirection): Promise<void>;
 
 	/**
+	 * Swipe from specific coordinates in any direction.
+	 * @param fromX Starting X coordinate
+	 * @param fromY Starting Y coordinate
+	 * @param direction Direction to swipe in
+	 * @param distance Distance to swipe in pixels (default: 300)
+	 */
+	swipeFromCoordinates(fromX: number, fromY: number, direction: SwipeDirection, distance?: number): Promise<void>;
+
+	/**
 	 * Get a screenshot of the screen. Returns a Buffer that contains
 	 * a PNG image of the screen. Will be same dimensions as getScreenSize().
 	 */

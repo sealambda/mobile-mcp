@@ -158,6 +158,32 @@ export class AndroidRobot implements Robot {
 		this.adb("shell", "input", "swipe", `${x0}`, `${y0}`, `${x1}`, `${y1}`, "1000");
 	}
 
+	public async swipeFromCoordinates(fromX: number, fromY: number, direction: SwipeDirection, distance: number = 300): Promise<void> {
+		let toX = fromX;
+		let toY = fromY;
+
+		switch (direction) {
+			case "up":
+				toY = fromY - distance;
+				break;
+			case "down":
+				toY = fromY + distance;
+				break;
+			case "left":
+				toX = fromX - distance;
+				break;
+			case "right":
+				toX = fromX + distance;
+				break;
+		}
+
+		const screenSize = await this.getScreenSize();
+		toX = Math.max(0, Math.min(screenSize.width, toX));
+		toY = Math.max(0, Math.min(screenSize.height, toY));
+
+		this.adb("shell", "input", "swipe", `${fromX}`, `${fromY}`, `${toX}`, `${toY}`, "500");
+	}
+
 	public async getScreenshot(): Promise<Buffer> {
 		return this.adb("exec-out", "screencap", "-p");
 	}

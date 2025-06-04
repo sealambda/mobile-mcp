@@ -121,6 +121,10 @@ export class IosRobot implements Robot {
 		await wda.swipe(direction);
 	}
 
+	public async swipeFromCoordinates(fromX: number, fromY: number, direction: SwipeDirection, distance?: number): Promise<void> {
+		throw new ActionableError("Coordinate-based swiping is not implemented for iOS devices yet");
+	}
+
 	public async listApps(): Promise<InstalledApp[]> {
 		await this.assertTunnelRunning();
 
